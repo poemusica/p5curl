@@ -1,37 +1,42 @@
 // Defines the sketch.
 var sketch = function (s) {
     // Sketch globals.
-    var windowDepth;
-    var ps;
-    var nearField;
-    var farField;
-
+    var winW, winH,
+        windowDepth,
+        ps,
+        nearField,
+        farField;
+    ////////////////////////////////////////////////////////////////////////////
     // Preloads assets using p5 *load functions.
     s.preload = function () {
     }
-
+    ////////////////////////////////////////////////////////////////////////////
+    // Sets up sketch.
     s.setup = function () {
-        s.createCanvas(s.windowWidth, s.windowHeight);
-        windowDepth = s.min(s.windowWidth, s.windowHeight)/2;
+        winW = document.getElementsByTagName("html")[0].clientWidth;
+        winH = document.getElementsByTagName("html")[0].clientHeight;
+        s.createCanvas(winW, winH);
+        windowDepth = s.min(winW, winH)/2;
         nearField = flowField(0, 100, 1);
         nearField.init();
         farField = flowField(100, 100, -1);
         farField.init();
-        psys = particleSystem(s.createVector(s.windowWidth/2, s.windowHeight/2, windowDepth/2));
+        psys = particleSystem(s.createVector(winW/2, winH/2, windowDepth/2));
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Draws.
     s.draw = function () {
-        s.background(255, 90);
-        // s.background(255);
-        // s.background(75, 175, 145);
+        s.background(255);
+        // s.background(255, 90);
         if (s.mouseIsPressed) {
-            nearField.dir.set(-1, 0);
+            // nearField.dir.set(-1, 0);
             farField.dir.set(1, 0);
         } else {
-            nearField.dir.set(1, 0);
+            // nearField.dir.set(1, 0);
             farField.dir.set(-1, 0);
         }
-        nearField.run();
+        // nearField.run();
         farField.run();
         if (psys.particles.length) {
             o = psys.particles[psys.particles.length-1].loc.copy();
@@ -39,14 +44,17 @@ var sketch = function (s) {
         }
         psys.run();
     }
-
+    ////////////////////////////////////////////////////////////////////////////
+    // Window resizing logic
     s.windowResized = function () {
-        s.resizeCanvas(s.windowWidth, s.windowHeight);
-        nearField.init();
+        winW = document.getElementsByTagName("html")[0].clientWidth;
+        winH = document.getElementsByTagName("html")[0].clientHeight;
+        s.resizeCanvas(winW, winH);
+        // nearField.init();
         farField.init();
     }
-
-    // Particle object.
+    ////////////////////////////////////////////////////////////////////////////
+    // Defines particle.
     function particle (l, _ageRate) {
         return {
             loc: l.copy(),
@@ -55,7 +63,9 @@ var sketch = function (s) {
             lifespan: 200,
             ageRate: _ageRate,
             maxSpeed: 5,
+            // radius
             r: s.random(2, 12),
+            // color
             c: s.createVector(s.random(0, 255), s.map(s.noise(this.r), 0, 1, 0, 255), s.random(150, 255)),
             applyForce: function (force) {
                 var f = force.copy();
@@ -79,11 +89,12 @@ var sketch = function (s) {
                 }
             },
             update: function () {
+                var // nearForce = nearField.lookup(this.loc),
+                    farForce = farField.lookup(this.loc);
                 this.vel.mult(0.9);
-                var nearForce = nearField.lookup(this.loc);
-                var farForce = farField.lookup(this.loc);
-                this.applyForce(p5.Vector.lerp(nearForce, farForce, s.map(this.loc.z, 0, windowDepth, 0, 1)));
-                this.applyForce(zDraft(this.loc));
+                this.applyForce(farForce);
+                // this.applyForce(p5.Vector.lerp(nearForce, farForce, s.map(this.loc.z, 0, windowDepth, 0, 1)));
+                // this.applyForce(zDraft(this.loc));
                 // this.collide(psys.particles);
                 this.vel.add(this.acc);
                 this.vel.limit(this.maxSpeed);
@@ -92,17 +103,17 @@ var sketch = function (s) {
                 this.lifespan -= this.ageRate;
             },
             wrap: function () {
-                if (this.loc.x > s.windowWidth + this.r) {
+                if (this.loc.x > winW + this.r) {
                     this.loc.x = 0;
                 }
                 if (this.loc.x < -this.r) {
-                    this.loc.x = s.windowWidth
+                    this.loc.x = winW;
                 }
-                if (this.loc.y > s.windowHeight + this.r) {
+                if (this.loc.y > winH + this.r) {
                     this.loc.y = 0;
                 }
                 if (this.loc.y < -this.r) {
-                    this.loc.y = s.windowHeight;
+                    this.loc.y = winH;
                 }
                 if (this.loc.z < 0) {
                     this.loc.z = 0; // bounce z
@@ -126,16 +137,16 @@ var sketch = function (s) {
             }
         }
     }
-
-    // Particle system.
+    ////////////////////////////////////////////////////////////////////////////
+    // Defines particle system.
     function particleSystem (l) {
         return {
             origin: l.copy(),
             lifespan: 300,
-            maxPop: 1000,
+            maxPop: 200,
             particles: [],
             addParticle: function () {
-                this.particles.push(particle(this.origin, 200/this.maxPop));
+                this.particles.push(particle(this.origin, 20/this.maxPop));
             },
             run: function () {
                 if (this.lifespan > 0 && s.frameCount % 10 === 0) {
@@ -151,14 +162,15 @@ var sketch = function (s) {
             }
         }
     }
-
+    ////////////////////////////////////////////////////////////////////////////
+    // Defines z-axis force.
     function zDraft(v) {
-        var xoff = 200;
-        var z = s.map(s.noise((v.x / 40) * 0.3 + xoff, (v.y / 40) * 0.3, s.frameCount/100), 0, 1, -1, 1);
+        var xoff = 200,
+            z = s.map(s.noise((v.x / 40) * 0.3 + xoff, (v.y / 40) * 0.3, s.frameCount/100), 0, 1, -1, 1);
         return s.createVector(0, 0, z);
     }
-
-    // Flow field.
+    ////////////////////////////////////////////////////////////////////////////
+    // Defines flow field.
     function flowField(_xoff, _yoff, _xdir) {
         return {
             resolution: 40,
@@ -171,10 +183,10 @@ var sketch = function (s) {
             xmargin: null,
             ymargin: null,
             init: function () {
-                this.rows = s.floor(s.windowHeight/this.resolution);
-                this.cols = s.floor(s.windowWidth/this.resolution);
-                this.xmargin = (s.windowWidth - (this.cols * this.resolution) + this.resolution) / 2;
-                this.ymargin = (s.windowHeight - (this.rows * this.resolution) + this.resolution) / 2;
+                this.rows = s.floor(winH/this.resolution);
+                this.cols = s.floor(winW/this.resolution);
+                this.xmargin = (winW - (this.cols * this.resolution) + this.resolution) / 2;
+                this.ymargin = (winH - (this.rows * this.resolution) + this.resolution) / 2;
                 this.field = [];
                 for (var r = 0; r < this.rows; r++) {
                     this.field.push([]);
@@ -185,8 +197,8 @@ var sketch = function (s) {
                 this.update();
             },
             lookup: function (v) {
-                var row = s.constrain(s.round((v.y - this.ymargin)/this.resolution), 0, this.rows - 1);
-                var col = s.constrain(s.round((v.x - this.xmargin)/this.resolution), 0, this.cols - 1);
+                var row = s.constrain(s.round((v.y - this.ymargin)/this.resolution), 0, this.rows - 1),
+                    col = s.constrain(s.round((v.x - this.xmargin)/this.resolution), 0, this.cols - 1);
                 return this.field[row][col].copy();
             },
             update: function () {
@@ -194,11 +206,14 @@ var sketch = function (s) {
                 for (var r = 0; r < this.rows; r++) {
                     var xstep = 0;
                     for (var c = 0; c < this.cols; c++) {
-                        var theta = s.map(s.noise(xstep, ystep + this.yoff, s.frameCount/100), 0, 1, s.radians(1), s.TWO_PI);
-                        var strength = s.map(s.noise(xstep + this.xoff, ystep + this.yoff, s.frameCount/100), 0, 1, 0, 1);
-                        this.field[r][c] = this.dir.copy();
-                        this.field[r][c].rotate(theta);
-                        this.field[r][c].setMag(strength);
+                        var v = s.noise(xstep, ystep, s.frameCount/100);
+                        var curlv = curl(v, v);
+                        this.field[r][c] = curlv; //.normalize();
+                        // var theta = s.map(s.noise(xstep, ystep + this.yoff, s.frameCount/100), 0, 1, s.radians(1), s.TWO_PI),
+                        //     strength = s.map(s.noise(xstep + this.xoff, ystep + this.yoff, s.frameCount/100), 0, 1, 0, 1);
+                        // this.field[r][c] = this.dir.copy();
+                        // this.field[r][c].rotate(theta);
+                        // this.field[r][c].setMag(strength);
                         xstep += 0.3;
                     }
                     ystep += 0.3;
@@ -235,6 +250,23 @@ var sketch = function (s) {
                 // this.display();
             }
         }
+    }
+    ////////////////////////////////////////////////////////////////////////////
+    // Computes curl of vector field. Returns vector.
+    function curl(x, y) {
+        var epsilon = 0.0001,
+            n1, n2,
+            a, b;
+        // Use finite differences technique to approximate derivatives.
+        // Approximate rate of change in x wrt y.
+        n1 = s.noise(x, y + epsilon);
+        n2 = s.noise(x, y - epsilon);
+        a = (n1 - n2) / (2 * epsilon);
+        // Approximate rate of change in y wrt x.
+        n1 = s.noise(x + epsilon, y);
+        n2 = s.noise(x - epsilon, y);
+        b = (n1 - n2) / (2 * epsilon);
+        return new p5.Vector(a, -b);
     }
 
 }
