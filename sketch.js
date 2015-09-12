@@ -2,7 +2,8 @@
 var sketch = function (s) {
     // Sketch globals.
     var winW, winH,
-        windowDepth;
+        // Noise produces weird effects at edges. Offset to avoid edge.
+        offset = 100;
     ////////////////////////////////////////////////////////////////////////////
     // Preloads assets using p5 *load functions.
     s.preload = function () {
@@ -10,6 +11,7 @@ var sketch = function (s) {
     ////////////////////////////////////////////////////////////////////////////
     // Sets up sketch.
     s.setup = function () {
+        s.colorMode(s.HSB, 360, 100, 100, 1);
         winW = document.getElementsByTagName("html")[0].clientWidth;
         winH = document.getElementsByTagName("html")[0].clientHeight;
         s.createCanvas(winW, winH);
@@ -18,7 +20,7 @@ var sketch = function (s) {
     ////////////////////////////////////////////////////////////////////////////
     // Draws.
     s.draw = function () {
-        s.background(255);
+        s.background(0);
         var step = 40,
             xoff = (winW % step) / 2,
             yoff = (winH % step) / 2;
@@ -26,8 +28,10 @@ var sketch = function (s) {
         s.translate(xoff, yoff);
         for (var x = step; x < winW - step; x += step) {
             for (var y = step; y < winH - step; y += step) {
-                var curlv = curl(x + 100, y + 100, s.frameCount);
+                var curlv = curl(x + offset, y + offset, s.frameCount);
                 curlv.setMag(10);
+                // Add 180 to exclude negative numbers.
+                s.stroke(s.degrees(curlv.heading()) + 180, 100, 100);
                 s.line(x, y, x + curlv.x, y + curlv.y);
                 s.ellipse(x, y, 2, 2);
             };
