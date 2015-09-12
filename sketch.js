@@ -29,19 +29,18 @@ var sketch = function (s) {
         for (var x = step; x < winW - step; x += step) {
             for (var y = step; y < winH - step; y += step) {
                 var curlv = curl(x + offset, y + offset, s.frameCount),
-                    repelv = p5.Vector.sub(s.createVector(x, y),
-                                           s.createVector(s.mouseX, s.mouseY)),
-                    dist = repelv.mag(),
-                    dir,
-                    v;
+                    repelv, dist, dir, v;
+                if (s.mouseIsPressed) {
+                    dir = 180;
+                } else { dir = 0; }
+                curlv.rotate(dir);
+                repelv = p5.Vector.sub(s.createVector(x, y),
+                                       s.createVector(s.mouseX, s.mouseY));
+                dist = repelv.mag();
                 curlv.setMag(1);
                 repelv.setMag(100/dist);
                 v = p5.Vector.add(curlv, repelv);
                 v.setMag(step/2);
-                if (s.mouseIsPressed) {
-                    dir = 180;
-                } else { dir = 0; }
-                v.rotate(dir);
                 // Add 180 to exclude negative numbers.
                 s.stroke(s.degrees(v.heading()) + 180, 100, 100);
                 s.line(x, y, x + v.x, y + v.y);
