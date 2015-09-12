@@ -1,4 +1,9 @@
 body {
     margin: 0px;
     padding: 0px;
+    overflow: hidden;
+}
+#p5-sketch {
+    margin: 0px;
+    padding: 0px;
 }
