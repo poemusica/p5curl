@@ -46,15 +46,14 @@ var sketch = function (s) {
                 } return false;
             },
             update: function () {
-                var curlv = curl(this.loc.x - this.loc.x % 40,
-                                 this.loc.y - this.loc.y % 40,
-                                 s.frameCount);
-                curlv.setMag(10);
-                this.vel = curlv;
-                // curlv = curlv.div(this.r/20);
-                // this.vel = p5.Vector.lerp(this.vel, curlv, 0.8);
-                // this.vel.mult(2);
-                // this.vel.limit(5);
+                var bucketX = this.loc.x - this.loc.x % 40,
+                    bucketY = this.loc.y - this.loc.y % 40,
+                    curlv = curl(bucketX, bucketY, s.frameCount),
+                    v = repel(curlv, bucketX, bucketY);
+                v = v.div(this.r/20);
+                v.mult(2);
+                this.vel = p5.Vector.lerp(this.vel, v, 0.8);
+                this.vel.limit(6);
                 this.loc.add(this.vel);
                 this.lifespan -= this.ageRate;
             },
@@ -131,17 +130,7 @@ var sketch = function (s) {
             // for (var y = step; y < winH - step; y += step) {
             for (var y = 0; y < winH; y += step) {
                 var curlv = curl(x, y, s.frameCount),
-                    dir, repelv, dist, v;
-                if (s.mouseIsPressed) {
-                    dir = 180;
-                } else { dir = 0; }
-                curlv.rotate(dir);
-                repelv = p5.Vector.sub(s.createVector(x, y),
-                                       s.createVector(s.mouseX, s.mouseY));
-                dist = repelv.mag();
-                curlv.setMag(1);
-                repelv.setMag(100/dist);
-                v = p5.Vector.add(curlv, repelv);
+                    v = repel(curlv, x, y);
                 v.setMag(step/2);
                 // Add 180 to exclude negative numbers.
                 s.noFill();
@@ -153,6 +142,22 @@ var sketch = function (s) {
         };
         s.pop();
     }
+    ////////////////////////////////////////////////////////////////////////////
+    // Disrupts flow based on mouse position.
+        function repel(curlv, x, y) {
+            var dir, repelv, dist, v;
+            if (s.mouseIsPressed) {
+                dir = 180;
+            } else { dir = 0; }
+            curlv.rotate(dir);
+            repelv = p5.Vector.sub(s.createVector(x, y),
+                                   s.createVector(s.mouseX, s.mouseY));
+            dist = repelv.mag();
+            curlv.setMag(1);
+            repelv.setMag(100/dist);
+            v = p5.Vector.add(curlv, repelv);
+            return v;
+        }
     ////////////////////////////////////////////////////////////////////////////
     // Computes curl of vector field. Returns vector.
     function curl(x, y, t) {
