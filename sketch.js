@@ -2,8 +2,6 @@
 // CURL NOISE SKETCH
 var sketch = function (s) {
     var winW, winH,
-        // Noise produces weird effects at edges. Offset to avoid edge.
-        offset = 100,
         psys;
     ////////////////////////////////////////////////////////////////////////////
     // Sets up sketch.
@@ -48,7 +46,9 @@ var sketch = function (s) {
                 } return false;
             },
             update: function () {
-                var curlv = curl(this.loc.x, this.loc.y, s.frameCount);
+                var curlv = curl(this.loc.x - this.loc.x % 40,
+                                 this.loc.y - this.loc.y % 40,
+                                 s.frameCount);
                 curlv.setMag(10);
                 this.vel = curlv;
                 // curlv = curlv.div(this.r/20);
@@ -130,7 +130,7 @@ var sketch = function (s) {
         for (var x = 0; x < winW; x += step) {
             // for (var y = step; y < winH - step; y += step) {
             for (var y = 0; y < winH; y += step) {
-                var curlv = curl(x + offset, y + offset, s.frameCount),
+                var curlv = curl(x, y, s.frameCount),
                     dir, repelv, dist, v;
                 if (s.mouseIsPressed) {
                     dir = 180;
@@ -158,17 +158,27 @@ var sketch = function (s) {
     function curl(x, y, t) {
         var epsilon = 0.001,
             noiseScale = 0.0005,
+            // Noise produces weird effects at edges. Offset to avoid edge.
+            noiseOffset = 100,
             tScale = 0.001,
             n1, n2,
             a, b;
         // Use finite differences technique to approximate derivatives.
         // Approximate rate of change in x wrt y.
-        n1 = s.noise(x * noiseScale, (y * noiseScale) + epsilon, t * tScale);
-        n2 = s.noise(x * noiseScale, (y * noiseScale) - epsilon, t * tScale);
+        n1 = s.noise((x * noiseScale) + noiseOffset,
+                     (y * noiseScale) + epsilon + noiseOffset,
+                     t * tScale);
+        n2 = s.noise((x * noiseScale) + noiseOffset,
+                     (y * noiseScale) - epsilon + noiseOffset,
+                     t * tScale);
         a = (n1 - n2) / (2 * epsilon);
         // Approximate rate of change in y wrt x.
-        n1 = s.noise((x * noiseScale) + epsilon, y * noiseScale, t * tScale);
-        n2 = s.noise((x * noiseScale) - epsilon, y * noiseScale, t * tScale);
+        n1 = s.noise((x * noiseScale) + epsilon + noiseOffset,
+                     (y * noiseScale) + noiseOffset,
+                     t * tScale);
+        n2 = s.noise((x * noiseScale) - epsilon + noiseOffset,
+                     (y * noiseScale) + noiseOffset,
+                     t * tScale);
         b = (n1 - n2) / (2 * epsilon);
         return new p5.Vector(a, -b);
     }
