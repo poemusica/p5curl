@@ -49,7 +49,8 @@ var sketch = function (s) {
                 var bucketX = this.loc.x - this.loc.x % 40,
                     bucketY = this.loc.y - this.loc.y % 40,
                     curlv = curl(bucketX, bucketY, s.frameCount),
-                    v = repel(curlv, bucketX, bucketY);
+                    v = makeEdges(curlv, bucketX, bucketY);
+                    // v = repel(curlv, bucketX, bucketY);
                 v = v.div(this.r/20);
                 v.mult(2);
                 // this.vel = p5.Vector.lerp(this.vel, v, 0.8);
@@ -131,7 +132,8 @@ var sketch = function (s) {
             // for (var y = step; y < winH - step; y += step) {
             for (var y = 0; y < winH; y += step) {
                 var curlv = curl(x, y, s.frameCount),
-                    v = repel(curlv, x, y);
+                    v = makeEdges(curlv, x, y);
+                    // v = repel(edgev, x, y);
                 v.setMag(step/2);
                 // Add 180 to exclude negative numbers.
                 s.noFill();
@@ -160,29 +162,20 @@ var sketch = function (s) {
         return v;
     }
     ////////////////////////////////////////////////////////////////////////////
-    // Modifies Perlin field to account for solid walls.
-    function rampedNoise(x, y, t) {
-        var n = s.noise(x, y, t),
-            l_ramp = ramp(x/winW),
-            r_ramp = 1, //ramp((winW - x)/winW),
-            t_ramp = 1, //ramp(y/winH),
-            b_ramp = 1; //ramp((winH-y)/winH);
-        return n * l_ramp * r_ramp * t_ramp * b_ramp;
-    }
-    ////////////////////////////////////////////////////////////////////////////
-    // Calculate largest dimension of Perlin space used.
-    function perlMax() {
-        // See curl function for vales: (winW * noiseScale) + (epsilon + noiseOffset)
-        return Math.max(winW * 0.0005 + 100.001, winH * 0.0005 + 100.001);
-    }
-    ////////////////////////////////////////////////////////////////////////////
-    // Ramp through zero based on distance to the boundary.
-    function ramp(r) {
-        if (r >= 1) { return 1; }
-        else if (r <= -1) { return -1; }
-        return (((15/8) * r) -
-                ((10/8) * Math.pow(r, 3)) +
-                 ((3/8) * Math.pow(r, 5)));
+    // Modify velocity vectors to account for boundaries.
+    function makeEdges(curlv, x, y) {
+        var v = s.createVector(),
+            midX = winW/2,
+            midY = winH/2,
+            amtX, amtY,
+            dirX, dirY;
+        if (x < midX) { dirX = 1; amtX = winW/s.sq(x + 1); }//s.map(x, 0, midX, 1, 0); }
+        else { dirX = -1; amtX = winW/s.sq(winW - (x -1)); }// s.map(x, midX, winW, 0, 1); }
+        if ( y < midY) { dirY = 1; amtY = winH/s.sq(y + 1); }//s.map(y, 0, midY, 1, 0); }
+        else { dirY = -1; amtY = winH/s.sq(winH - (y - 1)); }//s.map(y, midY, winH, 0, 1); }
+        v.x = s.lerp(curlv.x, dirX, amtX);
+        v.y = s.lerp(curlv.y, dirY, amtY);
+        return v;
     }
     ////////////////////////////////////////////////////////////////////////////
     // Computes curl of vector field. Returns vector.
@@ -196,18 +189,18 @@ var sketch = function (s) {
             a, b;
         // Use finite differences technique to approximate derivatives.
         // Approximate rate of change in x wrt y.
-        n1 = rampedNoise((x * noiseScale) + noiseOffset,
+        n1 = s.noise((x * noiseScale) + noiseOffset,
                      (y * noiseScale) + epsilon + noiseOffset,
                      t * tScale);
-        n2 = rampedNoise((x * noiseScale) + noiseOffset,
+        n2 = s.noise((x * noiseScale) + noiseOffset,
                      (y * noiseScale) - epsilon + noiseOffset,
                      t * tScale);
         a = (n1 - n2) / (2 * epsilon);
         // Approximate rate of change in y wrt x.
-        n1 = rampedNoise((x * noiseScale) + epsilon + noiseOffset,
+        n1 = s.noise((x * noiseScale) + epsilon + noiseOffset,
                      (y * noiseScale) + noiseOffset,
                      t * tScale);
-        n2 = rampedNoise((x * noiseScale) - epsilon + noiseOffset,
+        n2 = s.noise((x * noiseScale) - epsilon + noiseOffset,
                      (y * noiseScale) + noiseOffset,
                      t * tScale);
         b = (n1 - n2) / (2 * epsilon);
