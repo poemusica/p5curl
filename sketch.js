@@ -41,20 +41,32 @@ var sketch = function (s) {
             // color
             c: s.createVector(0, 0, 0),
             isDead: function () {
-                if (this.lifespan <= 0) {
+                if (this.lifespan <= 0 || this.isOffScreen()) { return true; }
+                return false;
+            },
+            isOffScreen: function () {
+                if (this.loc.x > winW + this.r) {
                     return true;
-                } return false;
+                }
+                if (this.loc.x < -this.r) {
+                    return true;
+                }
+                if (this.loc.y > winH + this.r) {
+                    return true;
+                }
+                if (this.loc.y < -this.r) {
+                    return true;
+                }
+                return false;
             },
             update: function () {
                 var bucketX = this.loc.x - this.loc.x % 40,
                     bucketY = this.loc.y - this.loc.y % 40,
                     curlv = curl(bucketX, bucketY, s.frameCount),
-                    v = makeEdges(curlv, bucketX, bucketY);
-                    // v = repel(curlv, bucketX, bucketY);
+                    v = repel(curlv, bucketX, bucketY);
                 v = v.div(this.r/20);
                 v.mult(2);
-                // this.vel = p5.Vector.lerp(this.vel, v, 0.8);
-                this.vel = v;
+                this.vel = p5.Vector.lerp(this.vel, v, 0.8);
                 this.vel.limit(6);
                 this.loc.add(this.vel);
                 this.lifespan -= this.ageRate;
@@ -83,7 +95,7 @@ var sketch = function (s) {
             },
             run: function () {
                 this.update();
-                this.wrap();
+                // this.wrap();
                 this.display();
             }
         }
@@ -95,20 +107,11 @@ var sketch = function (s) {
             origin: l.copy(),
             maxPop: 200,
             particles: [],
-            addParticle: function () {
-                var p = particle(this.origin, 20/this.maxPop);
+            addParticle: function (v) {
+                var p = particle(v, 20/this.maxPop);
                 this.particles.push(p);
             },
             run: function () {
-                if (s.frameCount % 10 === 0) {
-                    this.addParticle();
-                }
-                if (s.frameCount % 11 === 0) {
-                    var v;
-                    v = this.particles[this.particles.length - 1].vel.copy();
-                    v.mult(5);
-                    this.origin = p5.Vector.sub(this.origin, v);
-                }
                 for (var i = this.particles.length-1; i >= 0; i--) {
                     var p = this.particles[i];
                     p.run();
@@ -116,6 +119,13 @@ var sketch = function (s) {
                         this.particles.splice(i, 1);
                     }
                 }
+                if (s.frameCount % 10 === 0) {
+                    this.addParticle(this.origin);
+                    this.addParticle(s.createVector(winW/2, winH/2));
+                }
+                if (this.particles.length > 1) {
+                    this.origin = this.particles[this.particles.length - 2].loc.copy();
+                } else { this.origin = s.createVector(winW/2, winH/2); }
             }
         }
     }
@@ -132,8 +142,7 @@ var sketch = function (s) {
             // for (var y = step; y < winH - step; y += step) {
             for (var y = 0; y < winH; y += step) {
                 var curlv = curl(x, y, s.frameCount),
-                    v = makeEdges(curlv, x, y);
-                    // v = repel(edgev, x, y);
+                    v = repel(curlv, x, y);
                 v.setMag(step/2);
                 // Add 180 to exclude negative numbers.
                 s.noFill();
@@ -150,7 +159,7 @@ var sketch = function (s) {
     function repel(curlv, x, y) {
         var dir, repelv, dist, v;
         if (s.mouseIsPressed) {
-            dir = 180;
+            dir = s.PI;
         } else { dir = 0; }
         curlv.rotate(dir);
         repelv = p5.Vector.sub(s.createVector(x, y),
@@ -159,22 +168,6 @@ var sketch = function (s) {
         curlv.setMag(1);
         repelv.setMag(100/dist);
         v = p5.Vector.add(curlv, repelv);
-        return v;
-    }
-    ////////////////////////////////////////////////////////////////////////////
-    // Modify velocity vectors to account for boundaries.
-    function makeEdges(curlv, x, y) {
-        var v = s.createVector(),
-            midX = winW/2,
-            midY = winH/2,
-            amtX, amtY,
-            dirX, dirY;
-        if (x < midX) { dirX = 1; amtX = winW/s.sq(x + 1); }//s.map(x, 0, midX, 1, 0); }
-        else { dirX = -1; amtX = winW/s.sq(winW - (x -1)); }// s.map(x, midX, winW, 0, 1); }
-        if ( y < midY) { dirY = 1; amtY = winH/s.sq(y + 1); }//s.map(y, 0, midY, 1, 0); }
-        else { dirY = -1; amtY = winH/s.sq(winH - (y - 1)); }//s.map(y, midY, winH, 0, 1); }
-        v.x = s.lerp(curlv.x, dirX, amtX);
-        v.y = s.lerp(curlv.y, dirY, amtY);
         return v;
     }
     ////////////////////////////////////////////////////////////////////////////
