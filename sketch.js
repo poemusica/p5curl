@@ -62,10 +62,10 @@ var sketch = function (s) {
             update: function () {
                 var bucketX = this.loc.x - this.loc.x % 40,
                     bucketY = this.loc.y - this.loc.y % 40,
-                    curlv = curl(bucketX, bucketY, s.frameCount),
+                    curlv = curl(this.loc.x, this.loc.y, s.frameCount),
                     v = repel(curlv, bucketX, bucketY);
                 v = v.div(this.r/20);
-                v.mult(8);
+                v.mult(16);
                 this.vel = p5.Vector.lerp(this.vel, v, 0.5);
                 this.vel.limit(5);
                 this.loc.add(this.vel);
@@ -215,7 +215,7 @@ var sketch = function (s) {
     // a smoothed step function of distance from the boundary.
     function modNoise(x, y, t, d) {
             var n = s.noise(x, y, t),
-            mod = smoothstep(0, 80, d) * n;
+            mod = ramp(d * 0.0005) * n;
         return mod;
     }
     ////////////////////////////////////////////////////////////////////////////
