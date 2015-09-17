@@ -65,9 +65,9 @@ var sketch = function (s) {
                     curlv = curl(bucketX, bucketY, s.frameCount),
                     v = repel(curlv, bucketX, bucketY);
                 v = v.div(this.r/20);
-                v.mult(2);
-                this.vel = p5.Vector.lerp(this.vel, v, 0.8);
-                this.vel.limit(6);
+                v.mult(8);
+                this.vel = p5.Vector.lerp(this.vel, v, 0.5);
+                this.vel.limit(5);
                 this.loc.add(this.vel);
                 this.lifespan -= this.ageRate;
             },
@@ -119,9 +119,9 @@ var sketch = function (s) {
                         this.particles.splice(i, 1);
                     }
                 }
-                if (s.frameCount % 10 === 0) {
+                if (s.frameCount % 5 === 0) {
                     this.addParticle(this.origin);
-                    this.addParticle(s.createVector(winW/2, winH/2));
+                    // this.addParticle(s.createVector(winW/2, winH/2));
                 }
                 if (this.particles.length > 1) {
                     this.origin = this.particles[this.particles.length - 2].loc.copy();
@@ -143,10 +143,11 @@ var sketch = function (s) {
             for (var y = 0; y < winH; y += step) {
                 var curlv = curl(x, y, s.frameCount),
                     v = repel(curlv, x, y);
-                v.setMag(step/2);
+                // v.setMag(step/2);
+                v.mult(80);
                 // Add 180 to exclude negative numbers.
                 s.noFill();
-                s.strokeWeight(6);
+                s.strokeWeight(2);
                 s.stroke(s.degrees(v.heading()) + 180, 100, 100);
                 s.line(x, y, x + v.x, y + v.y);
                 s.ellipse(x, y, 1, 1);
@@ -162,13 +163,14 @@ var sketch = function (s) {
             dir = s.PI;
         } else { dir = 0; }
         curlv.rotate(dir);
-        repelv = p5.Vector.sub(s.createVector(x, y),
-                               s.createVector(s.mouseX, s.mouseY));
-        dist = repelv.mag();
-        curlv.setMag(1);
-        repelv.setMag(100/dist);
-        v = p5.Vector.add(curlv, repelv);
-        return v;
+        // repelv = p5.Vector.sub(s.createVector(x, y),
+                               // s.createVector(s.mouseX, s.mouseY));
+        // dist = repelv.mag();
+        // curlv.setMag(1);
+        // repelv.setMag(100/dist);
+        // v = p5.Vector.add(curlv, repelv);
+        // return v;
+        return curlv;
     }
     ////////////////////////////////////////////////////////////////////////////
     // Computes curl of vector field. Returns vector.
@@ -182,22 +184,53 @@ var sketch = function (s) {
             a, b;
         // Use finite differences technique to approximate derivatives.
         // Approximate rate of change in x wrt y.
-        n1 = s.noise((x * noiseScale) + noiseOffset,
+        n1 = modNoise((x * noiseScale) + noiseOffset,
                      (y * noiseScale) + epsilon + noiseOffset,
-                     t * tScale);
-        n2 = s.noise((x * noiseScale) + noiseOffset,
+                     t * tScale, x);
+        n2 = modNoise((x * noiseScale) + noiseOffset,
                      (y * noiseScale) - epsilon + noiseOffset,
-                     t * tScale);
+                     t * tScale, x);
         a = (n1 - n2) / (2 * epsilon);
         // Approximate rate of change in y wrt x.
-        n1 = s.noise((x * noiseScale) + epsilon + noiseOffset,
+        n1 = modNoise((x * noiseScale) + epsilon + noiseOffset,
                      (y * noiseScale) + noiseOffset,
-                     t * tScale);
-        n2 = s.noise((x * noiseScale) - epsilon + noiseOffset,
+                     t * tScale, x);
+        n2 = modNoise((x * noiseScale) - epsilon + noiseOffset,
                      (y * noiseScale) + noiseOffset,
-                     t * tScale);
+                     t * tScale, x);
         b = (n1 - n2) / (2 * epsilon);
         return new p5.Vector(a, -b);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Ramp
+    function ramp(r) {
+        if (r >= 1) { return 1; }
+        if (r <= -1) { return -1; }
+        else { return (15/8) * r - (10/8) * Math.pow(r, 3) + (3/8) * Math.pow(r, 5); }
+    }
+    ////////////////////////////////////////////////////////////////////////////
+    // Noise modulation
+    // Multiply scaled noise by
+    // a smoothed step function of distance from the boundary.
+    function modNoise(x, y, t, d) {
+            var n = s.noise(x, y, t),
+            mod = smoothstep(0, 80, d) * n;
+        return mod;
+    }
+    ////////////////////////////////////////////////////////////////////////////
+    // Smooth step
+    function smoothstep(edge0, edge1, x) {
+        x = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+        // 3x^2 - 2x^3
+        return x * x * (3 - 2 * x);
+    }
+    ////////////////////////////////////////////////////////////////////////////
+    // Restricts value to a range.
+    function clamp(x, min, max) {
+        if (x < min) { x = min; }
+        else if (x > max) {x = max; }
+        return x;
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
